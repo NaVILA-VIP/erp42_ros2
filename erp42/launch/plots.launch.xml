@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="rqt_plot" exec="rqt_plot"
+        args="/imu/data/linear_acceleration/x /odom/pose/pose/position/x /odom/pose/pose/position/y"/>
+</launch>

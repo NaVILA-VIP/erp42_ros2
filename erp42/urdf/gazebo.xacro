@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="camera_sensor" params="side">
+    <link name="${side}_camera_optical_frame"/>
+    <joint name="${side}_camera_optical_joint" type="fixed">
+      <parent link="${side}_camera"/>
+      <child link="${side}_camera_optical_frame"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+    <gazebo reference="${side}_camera">
+      <sensor name="${side}_imager" type="camera">
+        <update_rate>30</update_rate>
+        <camera name="${side}">
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image><width>800</width><height>800</height><format>R8G8B8</format></image>
+          <clip><near>0.02</near><far>300</far></clip>
+          <noise><type>gaussian</type><mean>0</mean><stddev>0.007</stddev></noise>
+        </camera>
+        <plugin name="${side}_camera_driver" filename="libgazebo_ros_camera.so">
+          <ros><namespace>/erp42</namespace></ros>
+          <camera_name>${side}_camera</camera_name>
+          <frame_name>${side}_camera_optical_frame</frame_name>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="controlled_joint" params="name interface">
+    <joint name="${name}">
+      <command_interface name="${interface}"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="simulation" params="drive_mode publish_ground_truth_tf">
+    <xacro:property name="wheel_interface" value="${'velocity' if drive_mode == 'skid' else 'effort'}"/>
+    <ros2_control name="ERP42" type="system">
+      <hardware><plugin>gazebo_ros2_control/GazeboSystem</plugin></hardware>
+      <xacro:controlled_joint name="right_front_wheel_joint" interface="${wheel_interface}"/>
+      <xacro:controlled_joint name="right_back_wheel_joint" interface="${wheel_interface}"/>
+      <xacro:controlled_joint name="left_front_wheel_joint" interface="${wheel_interface}"/>
+      <xacro:controlled_joint name="left_back_wheel_joint" interface="${wheel_interface}"/>
+      <xacro:controlled_joint name="right_front_disk_wheel_joint" interface="position"/>
+      <xacro:controlled_joint name="left_front_disk_wheel_joint" interface="position"/>
+    </ros2_control>
+    <gazebo>
+      <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+        <parameters>$(find erp42)/config/controllers.yaml</parameters>
+        <ros>
+          <remapping>/skid_drive/cmd_vel_unstamped:=/cmd_vel</remapping>
+          <remapping>/skid_drive/odom:=/odom_skid</remapping>
+        </ros>
+      </plugin>
+      <plugin filename="liberp42_odometry.so" name="erp42_odometry">
+        <publish_tf>${publish_ground_truth_tf}</publish_tf>
+      </plugin>
+    </gazebo>
+    <gazebo reference="structure">
+      <sensor name="body_imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>20</update_rate>
+        <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_driver">
+          <ros><remapping>~/out:=/imu/data</remapping></ros>
+          <frame_name>structure</frame_name>
+          <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

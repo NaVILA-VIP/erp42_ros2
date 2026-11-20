@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="slope">
+    <static>true</static>
+    <link name="link">
+      <pose>10 0 0.01 0 0 1.5707</pose>
+      <collision name="collision">
+        <geometry><mesh><uri>model://elements/meshes/slope_ERP42.dae</uri></mesh></geometry>
+        <surface><friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <geometry><mesh><uri>model://elements/meshes/slope_ERP42.dae</uri></mesh></geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
