@@ -19,7 +19,7 @@ def start_simulation(context):
         "true", "1", "yes", "on"
     )
 
-    return [
+    actions = [
         IncludeLaunchDescription(AnyLaunchDescriptionSource(str(share / "launch/description.launch.py")),
                                  launch_arguments={"drive_mode": mode,
                                                    "publish_ground_truth_tf": "false" if localization_enabled else "true",
@@ -38,6 +38,17 @@ def start_simulation(context):
             AnyLaunchDescriptionSource(str(localization / "launch/ekf_localization.launch.xml")),
             condition=IfCondition(LaunchConfiguration("localization"))),
     ]
+    if mode == "effort":
+        actions.append(
+            Node(
+                package="erp42_control",
+                executable="idle_hold",
+                output="screen",
+                parameters=[{"use_sim_time": True}],
+                condition=IfCondition(LaunchConfiguration("idle_hold")),
+            )
+        )
+    return actions
 
 
 def generate_launch_description():
@@ -47,6 +58,8 @@ def generate_launch_description():
         DeclareLaunchArgument("rviz", default_value="false", description="Open RViz2"),
         DeclareLaunchArgument("localization", default_value="false", description="Run noisy odometry and EKF"),
         DeclareLaunchArgument("drive_mode", default_value="effort", choices=["effort", "skid"]),
+        DeclareLaunchArgument("idle_hold", default_value="true",
+                              description="Enable the low-torque anti-creep hold in effort mode"),
         DeclareLaunchArgument("world", default_value=str(worlds / "simple_world.world")),
         OpaqueFunction(function=start_simulation),
     ])

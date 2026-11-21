@@ -1,8 +1,14 @@
 # ERP42 · ROS 2 Humble
 
+Windows 프로젝트와 WSL2 빌드 디렉터리의 실제 위치: [WSL2 프로젝트 경로 대응표](../WSL2_PROJECT_PATHS.md).
+
 Ubuntu 22.04, ROS 2 Humble, Gazebo Classic 11용 시뮬레이션 모델이다. 원본의 차체·바퀴 메시, 관절 배치, 조향 범위(±0.4 rad), 카메라 4대, IMU 및 5° 경사로를 사용한다. 기본 주행 입력은 바퀴별 토크(N·m)와 앞바퀴별 조향각(rad)이다. [원본 저장소](https://github.com/nabihandres/ERP42-model/tree/fcb5d4c1758638336f23295c3b23c525a8b7770f)
 
 ## Windows / WSL 2 환경
+
+> 2026-11-21 무조작 후방 드리프트 개선: [실측 및 변경 보고서](ERP42_IDLE_DRIFT_FIX_20261121.md). effort 모드에서 정지 보정을 기본 활성화하고, `idle_hold:=false`로 원래 물리를 재현할 수 있다.
+
+**Gazebo GUI 시각화:** [WSL2 Gazebo 실행 안내](GAZEBO_GUI_WSL.md). WSL의 `/root/erp42_ws/start_gazebo_gui.sh`로 Windows 데스크톱에 ERP42 Gazebo 창을 열 수 있다. `--rviz`로 RViz2도 함께 시작한다.
 
 Windows의 PowerShell에서 이 저장소 디렉터리로 이동한 뒤 실행한다. 기존 Ubuntu 24.04/26.04 WSL 배포판과는 별개로 **Ubuntu 22.04**에 Humble을 설치한다.
 
@@ -54,6 +60,8 @@ source install/setup.bash
 
 ## 시뮬레이션 실행
 
+**무조작 후방 이동 보정:** effort 모드에서 `idle_hold:=true`(기본값)로 작은 보정 토크를 사용한다. 다른 `/wheel_effort/commands` 발행자가 나타나면 보정은 제어권을 넘기며, 발행자가 종료되면 현재 위치를 새 정지 목표로 잡는다. 시험에서 무조작 후방 이동 약 0.41 mm/s를 10초간 약 16 µm 범위로 억제했다. 순수 Gazebo 물리 실험은 `idle_hold:=false`로 비활성화한다. `drive_mode:=skid`에서는 이 기능을 시작하지 않는다.
+
 ```bash
 ros2 launch erp42 erp42.launch.py
 ```
@@ -79,7 +87,7 @@ ros2 topic pub --once /steering/commands std_msgs/msg/Float64MultiArray '{data: 
 ros2 topic pub --once /wheel_effort/commands std_msgs/msg/Float64MultiArray '{data: [12.0, 12.0, 12.0, 12.0]}'
 ```
 
-그룹 컨트롤러는 마지막 명령을 유지한다. 토크를 해제하고 조향을 중앙에 놓으려면 다음 명령을 보낸다. 토크 0은 관성 주행을 허용한다.
+그룹 컨트롤러는 마지막 명령을 유지한다. 토크를 해제하고 조향을 중앙에 놓으려면 다음 명령을 보낸다. 토크 0 자체는 제동이 아니지만 기본 `idle_hold:=true`가 활성화되어 있고 외부 토크 발행자가 없으면 별도의 정지 보정 토크가 적용된다. 지속 주행에는 `--once` 대신 연속 발행 노드를 사용한다.
 
 ```bash
 ros2 topic pub --once /wheel_effort/commands std_msgs/msg/Float64MultiArray '{data: [0.0, 0.0, 0.0, 0.0]}'

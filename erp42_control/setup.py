@@ -18,5 +18,6 @@ setup(
         "steer.py = erp42_control.commands:steer",
         "motionERP42.py = erp42_control.commands:motion",
         "noisy_odom.py = erp42_control.noisy_odom:main",
+        "idle_hold = erp42_control.idle_hold:main",
     ]},
 )
